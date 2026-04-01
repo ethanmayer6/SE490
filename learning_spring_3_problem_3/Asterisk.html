@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asterisk HTML5</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #game-container {
+            width: 320px;
+            height: 295px;
+            position: relative;
+            background: #000;
+        }
+
+        .label {
+            position: absolute;
+            font-size: 13px;
+        }
+
+        #level {
+            left: 10px;
+            top: 10px;
+            width: 100px;
+        }
+
+        #record {
+            left: 120px;
+            top: 10px;
+            width: 190px;
+        }
+
+        #instructions1 {
+            left: 10px;
+            top: 30px;
+            width: 150px;
+            color: yellow;
+        }
+
+        #instructions2 {
+            left: 165px;
+            top: 30px;
+            width: 150px;
+            color: lightgreen;
+        }
+
+        #canvas {
+            position: absolute;
+            left: 10px;
+            top: 55px;
+            background: #000;
+        }
+
+        .btn {
+            position: absolute;
+            top: 265px;
+            background: lightgray;
+            color: black;
+            border: 1px solid #999;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .btn:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+            border-color: #444;
+        }
+
+        #btn-1p {
+            left: 30px;
+        }
+
+        #btn-2p {
+            left: 185px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-container">
+        <div id="level" class="label">Level 1</div>
+        <div id="record" class="label">Record: Level 1 by nobody</div>
+        <div id="instructions1" class="label">Player 1: Enter key</div>
+        <div id="instructions2" class="label">Player 2: SHIFT key</div>
+
+        <canvas id="canvas" width="300" height="200"></canvas>
+
+        <button id="btn-1p" class="btn">1 Player</button>
+        <button id="btn-2p" class="btn">2 Player</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const levelEl = document.getElementById('level');
+        const recordEl = document.getElementById('record');
+        const btn1p = document.getElementById('btn-1p');
+        const btn2p = document.getElementById('btn-2p');
+
+        let timer;
+        let nLevel = 0;
+        let nXPos = 0;
+        let nYPos1 = 0;
+        let nYPos2 = 0;
+        let blnKeyDown1 = false;
+        let blnKeyDown2 = false;
+        let nRecordLevel = parseInt(localStorage.getItem('AsteriskLevel')) || 1;
+        let recordName = localStorage.getItem('AsteriskName') || 'nobody';
+        let nPlayers = 1;
+
+        let col1 = 'yellow';
+        const colors = ['yellow', 'cyan', 'magenta', 'orange', 'pink', 'deepskyblue', 'lime'];
+        const col2 = 'lightgreen';
+
+        function showRecord() {
+            localStorage.setItem('AsteriskLevel', nRecordLevel);
+            localStorage.setItem('AsteriskName', recordName);
+            recordEl.innerText = `Record: Level ${nRecordLevel} by ${recordName}`;
+        }
+
+        showRecord();
+        drawAsterisks(); // Draw initial screen
+
+        btn1p.addEventListener('click', () => { nPlayers = 1; newGame(); });
+        btn2p.addEventListener('click', () => { nPlayers = 2; newGame(); });
+
+        document.addEventListener('keydown', (e) => {
+            // Check mapping
+            if (e.key === 'Enter') blnKeyDown1 = true;
+            if (e.key === 'Shift') blnKeyDown2 = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') blnKeyDown1 = false;
+            if (e.key === 'Shift') blnKeyDown2 = false;
+        });
+
+        function drawAsterisks() {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw white borders
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, 1); // top
+            ctx.fillRect(0, canvas.height - 1, canvas.width, 1); // bottom
+            ctx.fillRect(canvas.width - 1, 0, 1, canvas.height); // right
+
+            // Draw gap in right border
+            ctx.fillStyle = 'black';
+            ctx.fillRect(canvas.width - 1, Math.floor(canvas.height / 2) - 15, 1, 30);
+
+            // Draw Asterisks
+            ctx.font = 'bold 12px "Courier New"';
+            ctx.fillStyle = 'white';
+            ctx.textBaseline = 'top';
+
+            let nAsterisks = nLevel * 3;
+            for (let i = 0; i < nAsterisks; i++) {
+                let x = Math.floor(Math.random() * (canvas.width - 20)) + 10;
+                let y = Math.floor(Math.random() * (canvas.height - 10));
+                ctx.fillText('*', x, y);
+            }
+        }
+
+        function newLevel() {
+            nLevel++;
+            nXPos = 0;
+            if (nPlayers === 1) {
+                nYPos1 = Math.floor(canvas.height / 2);
+            } else {
+                nYPos1 = Math.floor(canvas.height / 4);
+                nYPos2 = Math.floor((3 * canvas.height) / 4);
+            }
+            levelEl.innerText = `Level ${nLevel}`;
+            
+            if (nLevel === 1) {
+                col1 = 'yellow';
+            } else {
+                col1 = colors[(nLevel - 1) % colors.length];
+            }
+            document.getElementById('instructions1').style.color = col1;
+            
+            blnKeyDown1 = false;
+            blnKeyDown2 = false;
+            drawAsterisks();
+        }
+
+        function newGame() {
+            btn1p.disabled = true;
+            btn2p.disabled = true;
+            nLevel = 0;
+            newLevel();
+            if (timer) clearInterval(timer);
+            timer = setInterval(onTimerTick, 20);
+        }
+
+        function onTimerTick() {
+            nXPos++;
+            nYPos1 += blnKeyDown1 ? -1 : 1;
+            nYPos2 += blnKeyDown2 ? -1 : 1;
+
+            checkPosition();
+        }
+
+        function isPixelCrash(x, y) {
+            if (y < 0 || y >= canvas.height || x < 0 || x >= canvas.width) return true;
+            let pixel = ctx.getImageData(x, y, 1, 1).data;
+            return (pixel[0] !== 0 || pixel[1] !== 0 || pixel[2] !== 0);
+        }
+
+        function checkPosition() {
+            let p1Crash = false;
+            let p2Crash = false;
+
+            if (nXPos >= canvas.width) {
+                newLevel();
+                return;
+            }
+
+            if (isPixelCrash(nXPos, nYPos1)) {
+                p1Crash = true;
+            }
+
+            if (nPlayers > 1) {
+                if (isPixelCrash(nXPos, nYPos2)) {
+                    p2Crash = true;
+                }
+            }
+
+            if (p1Crash || p2Crash) {
+                clearInterval(timer);
+                if (nPlayers === 1) {
+                    if (nLevel > nRecordLevel) {
+                        setTimeout(() => {
+                            let name = prompt("High Score! Enter your name:", recordName) || "nobody";
+                            recordName = name.substring(0, 20);
+                            nRecordLevel = nLevel;
+                            showRecord();
+                            btn1p.disabled = false;
+                            btn2p.disabled = false;
+                        }, 50);
+                    } else {
+                        setTimeout(() => {
+                            alert("Game Over");
+                            btn1p.disabled = false;
+                            btn2p.disabled = false;
+                        }, 50);
+                    }
+                } else {
+                    setTimeout(() => {
+                        let msg = "";
+                        if (p1Crash && p2Crash) msg = "Draw, play again?";
+                        else if (p1Crash) msg = "Player 2 wins, play again?";
+                        else msg = "Player 1 wins, play again?";
+
+                        if (confirm(msg)) {
+                            nPlayers = 2;
+                            newGame();
+                        } else {
+                            btn1p.disabled = false;
+                            btn2p.disabled = false;
+                        }
+                    }, 50);
+                }
+                return;
+            }
+
+            // Draw player paths
+            ctx.fillStyle = col1;
+            ctx.fillRect(nXPos, nYPos1, 1, 1);
+
+            if (nPlayers > 1) {
+                ctx.fillStyle = col2;
+                ctx.fillRect(nXPos, nYPos2, 1, 1);
+            }
+        }
+    </script>
+</body>
+
+</html>
